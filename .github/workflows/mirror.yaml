@@ -75,6 +75,6 @@ jobs:
               -u "${INPUT_DEST_USERNAME}:${INPUT_DEST_TOKEN}" \
               -H 'Content-Type: application/json' \
               -d '{"scm":"git"}' \
-              "https://api.bitbucket.org/2.0/repositories/${INPUT_DEST_USERNAME}/${REPO_NAME}"
+              "https://api.bitbucket.org/2.0/repositories/${INPUT_DEST_USERNAME}/${REPO_NAME}" > /dev/null 2>&1
           notify_prefix: "GitHub to BitBucket"
           ignore_error: "true"
