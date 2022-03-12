@@ -1,0 +1,96 @@
+# Creating a Docker container action https://docs.github.com/en/actions/creating-actions/creating-a-docker-container-action
+# Metadata syntax for GitHub Actions https://docs.github.com/en/actions/creating-actions/metadata-syntax-for-github-actions
+
+name: "Mirror Git"
+branding:
+  icon: "copy"
+  color: "green"
+author: "ale-novo"
+description: "Synchronize git repositories like a mirror."
+inputs:
+  source_protocol:
+    description: "https or ssh"
+    require: true
+    default: "https"
+  source_host:
+    description: "Git server host without the protocol"
+    required: true
+    default: "github.com"
+  source_port:
+    description: "Git server port"
+    required: false
+  source_username:
+    description: "Username on source git server"
+    required: true
+  source_private_key:
+    description: "SSH private key"
+    required: false
+  source_token:
+    description: "Personal access token"
+    required: false
+  source_token_username:
+    description: "Username who owned the token"
+    required: false
+  dest_protocol:
+    description: "https or ssh"
+    require: true
+    default: "https"
+  dest_host:
+    description: "Git server host without the protocol"
+    required: true
+    default: "github.com"
+  dest_port:
+    description: "Git server port"
+    required: false
+  dest_username:
+    description: "Username on dest git server"
+    required: true
+  dest_private_key:
+    description: "SSH private key"
+    required: false
+  dest_token:
+    description: "Personal access token"
+    required: false
+  dest_token_username:
+    description: "Username who owned the token"
+    required: false
+  dest_create_repo_script:
+    description: "Script used to create repo on dest git server"
+    required: false
+  mirror_repos:
+    description: "Repos to mirror, separated by comma"
+    required: true
+  push_tags:
+    description: "Push tags, true or false"
+    required: false
+    default: "true"
+  skip_tags_repos:
+    description: "Skip pushing tags for these repos, surrounded by comma"
+    required: false
+  ignored_repos:
+    description: "Ignore these repos, surrounded by comma"
+    required: false
+  slack_webhook:
+    description: "Slack webhook url"
+    required: false
+  dingtalk_webhook:
+    description: "DingTalk webhook url"
+    required: false
+  lark_webhook:
+    description: "Lark webhook url"
+    required: false
+  notify_prefix:
+    description: "Prefix for notify message"
+    required: false
+    default: "Mirror Git"
+  notify_suffix:
+    description: "Suffix for notify message"
+    required: false
+    default: "ttps://github.com/ale-novo/mirror-git"
+  ignore_error:
+    description: "Ignore error, true or false"
+    required: false
+    default: "false"
+runs:
+  using: "docker"
+  image: "Dockerfile"

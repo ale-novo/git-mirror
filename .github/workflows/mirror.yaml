@@ -1,0 +1,80 @@
+name: Mirror
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 */4 * * *"
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Login Source GitHub
+        run: |
+          gh --version
+          echo "${{ secrets.TOKEN_GITHUB }}" | gh auth login --with-token
+          gh auth status
+
+      - name: List BitBucket repos
+        id: bb_list_repos
+        run: |
+          bb_repo_list=$(curl --request GET -s -u "${{ secrets.USER_BITBUCKET }}:${{ secrets.TOKEN_BITBUCKET }}" --url "https://api.bitbucket.org/2.0/repositories/${{ secrets.USER_BITBUCKET }}?pagelen=100&fields=values.name" --header 'Accept: application/json' | jq -r '.values | map(.name) | join(",")')
+          echo "::set-output name=bb_repo_list::${bb_repo_list}"
+
+      - name: List GitHub repos
+        id: gh_list_repos
+        run: |
+          gh_repo_list=$(gh repo list "${{ secrets.USER_GITHUB }}" -L 1000 --json name -t '{{range $i, $n := .}}{{if (gt $i 0)}},{{end}}{{$n.name}}{{end}}')
+          echo "::set-output name=gh_repo_list::${gh_repo_list}"
+
+      - name: BitBucket to GitHub
+        uses: ./
+        with:
+          source_protocol: https
+          source_host: bitbucket.org
+          source_username: ${{ secrets.USER_BITBUCKET }}
+          source_token: ${{ secrets.TOKEN_BITBUCKET }}
+          dest_protocol: https
+          dest_host: github.com
+          dest_username: ${{ secrets.USER_GITHUB }}
+          dest_token: ${{ secrets.TOKEN_GITHUB }}
+          dest_token_username: ${{ secrets.USER_GITHUB }}
+          mirror_repos: ${{ steps.bb_list_repos.outputs.bb_repo_list }}
+          dest_create_repo_script: |
+            if ! gh auth status > /dev/null 2>&1; then
+              echo "${INPUT_DEST_TOKEN}" | gh auth login --with-token > /dev/null 2>&1
+              gh auth status > /dev/null 2>&1
+            fi
+
+            found=$(gh repo list ${INPUT_DEST_USERNAME} -L 1000 --json name -t "{{range .}}{{if (eq .name \"${REPO_NAME}\")}}{{.name}}{{end}}{{end}}")
+            if [[ -n "${found}" ]]; then
+              #echo "Repo already exists: ${REPO_NAME}"
+              #echo "Repo already exists"
+              exit 0
+            fi
+            gh repo create "${INPUT_DEST_USERNAME}/${REPO_NAME}" --private > /dev/null 2>&1
+          notify_prefix: "BitBucket to GitHub"
+          ignore_error: "true"
+
+      - name: GitHub to BitBucket
+        uses: ./
+        with:
+          source_protocol: https
+          source_host: github.com
+          source_username: ${{ secrets.USER_GITHUB }}
+          source_token: ${{ secrets.TOKEN_GITHUB }}
+          dest_protocol: https
+          dest_host: bitbucket.org
+          dest_username: ${{ secrets.USER_BITBUCKET }}
+          dest_token: ${{ secrets.TOKEN_BITBUCKET }}
+          mirror_repos: ${{ steps.gh_list_repos.outputs.gh_repo_list }}
+          dest_create_repo_script: |
+            curl -s \
+              -u "${INPUT_DEST_USERNAME}:${INPUT_DEST_TOKEN}" \
+              -H 'Content-Type: application/json' \
+              -d '{"scm":"git"}' \
+              "https://api.bitbucket.org/2.0/repositories/${INPUT_DEST_USERNAME}/${REPO_NAME}"
+          notify_prefix: "GitHub to BitBucket"
+          ignore_error: "true"
