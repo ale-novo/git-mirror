@@ -67,7 +67,6 @@ jobs:
 
             found=$(gh repo list ${INPUT_DEST_USERNAME} -L 1000 --json name -t "{{range .}}{{if (eq .name \"${REPO_NAME}\")}}{{.name}}{{end}}{{end}}")
             if [[ -n "${found}" ]]; then
-              #echo "Repo already exists: ${REPO_NAME}"
               #echo "Repo already exists"
               exit 0
             fi
@@ -147,10 +146,62 @@ jobs:
 
             found=$(gh repo list ${INPUT_DEST_USERNAME} -L 1000 --json name -t "{{range .}}{{if (eq .name \"${REPO_NAME}\")}}{{.name}}{{end}}{{end}}")
             if [[ -n "${found}" ]]; then
-              #echo "Repo already exists: ${REPO_NAME}"
               #echo "Repo already exists"
               exit 0
             fi
             gh repo create "${INPUT_DEST_USERNAME}/${REPO_NAME}" --private > /dev/null 2>&1
           notify_prefix: "Gitlab to GitHub"
           ignore_error: "true"
+
+
+      - name: Gitlab to BitBucket
+        uses: ./
+        with:
+          source_protocol: https
+          source_host: gitlab.com
+          source_username: ${{ secrets.USER_GITLAB }}
+          source_token: ${{ secrets.TOKEN_GITLAB }}
+          dest_protocol: https
+          dest_host: bitbucket.org
+          dest_username: ${{ secrets.USER_BITBUCKET }}
+          dest_token: ${{ secrets.TOKEN_BITBUCKET }}
+          mirror_repos: ${{ steps.gl_list_repos.outputs.gl_repo_list }}
+          dest_create_repo_script: |
+            curl -s \
+              -u "${INPUT_DEST_USERNAME}:${INPUT_DEST_TOKEN}" \
+              -H 'Content-Type: application/json' \
+              -d '{"scm":"git"}' \
+              "https://api.bitbucket.org/2.0/repositories/${INPUT_DEST_USERNAME}/${REPO_NAME}" > /dev/null 2>&1
+          notify_prefix: "Gitlab to BitBucket"
+          ignore_error: "true"
+
+      - name: BitBucket to GitLab
+        uses: ./
+        with:
+          source_protocol: https
+          source_host: bitbucket.org
+          source_username: ${{ secrets.USER_BITBUCKET }}
+          source_token: ${{ secrets.TOKEN_BITBUCKET }}
+          dest_protocol: https
+          dest_host: gitlab.com
+          dest_username: ${{ secrets.USER_GITLAB }}
+          dest_token: ${{ secrets.TOKEN_GITLAB }}
+          mirror_repos: ${{ steps.bb_list_repos.outputs.bb_repo_list }}
+          lark_webhook: ${{ secrets.LARK_WEBHOOK }}
+          notify_prefix: "BitBucket to GitLab"
+          ignore_error: "true"
+          dest_create_repo_script: |
+            # load functions: gitlab_update_project, gitlab_create_project, urlencode
+            source /mirror-git/functions/url.sh
+            source /mirror-git/functions/gitlab.sh
+
+            result=$(gitlab_update_project ${INPUT_DEST_TOKEN} $(urlencode ${INPUT_DEST_USERNAME}/${REPO_NAME}) "{\"lfs_enabled\":false}")
+            if [[ "${result}" = "404" ]]; then
+              result=$(gitlab_create_project ${INPUT_DEST_TOKEN} "{\"name\":\"${REPO_NAME}\",\"lfs_enabled\":false}")
+              if [[ "${result}" != "201" ]]; then
+                #notify "Failed to create gitlab project ${REPO_NAME}"
+                notify "Failed to create gitlab project"
+                exit 1
+              fi
+            fi
+
