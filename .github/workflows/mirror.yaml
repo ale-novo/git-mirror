@@ -9,7 +9,18 @@ jobs:
   mirror:
     runs-on: ubuntu-latest
     steps:
+
       - uses: actions/checkout@v2
+
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.6.8"
+      - name: Unprotect branches
+        run: |
+          python -V
+          pip -V
+          pip install requests
+          python unprotect_branches.py ${{ secrets.USER_GITLAB }} ${{ secrets.TOKEN_GITLAB }}
 
       - name: Login Source GitHub
         run: |
@@ -17,17 +28,23 @@ jobs:
           echo "${{ secrets.TOKEN_GITHUB }}" | gh auth login --with-token
           gh auth status
 
+      - name: List GitHub repos
+        id: gh_list_repos
+        run: |
+          gh_repo_list=$(gh repo list -L 1000 --json name -t '{{range $i, $n := .}}{{if (gt $i 0)}},{{end}}{{$n.name}}{{end}}')
+          echo "::set-output name=gh_repo_list::${gh_repo_list}"
+
+      - name: List Gitlab repos
+        id: gl_list_repos
+        run: |
+          gl_repo_list=$(curl -s "https://gitlab.com/api/v4/users/${{ secrets.USER_GITLAB }}/projects?private_token=${{ secrets.TOKEN_GITLAB }}&per_page=100" |  jq  -r '. | map (.name) | join(",")')
+          echo "::set-output name=gl_repo_list::${gl_repo_list}"
+
       - name: List BitBucket repos
         id: bb_list_repos
         run: |
           bb_repo_list=$(curl --request GET -s -u "${{ secrets.USER_BITBUCKET }}:${{ secrets.TOKEN_BITBUCKET }}" --url "https://api.bitbucket.org/2.0/repositories/${{ secrets.USER_BITBUCKET }}?pagelen=100&fields=values.name" --header 'Accept: application/json' | jq -r '.values | map(.name) | join(",")')
           echo "::set-output name=bb_repo_list::${bb_repo_list}"
-
-      - name: List GitHub repos
-        id: gh_list_repos
-        run: |
-          gh_repo_list=$(gh repo list "${{ secrets.USER_GITHUB }}" -L 1000 --json name -t '{{range $i, $n := .}}{{if (gt $i 0)}},{{end}}{{$n.name}}{{end}}')
-          echo "::set-output name=gh_repo_list::${gh_repo_list}"
 
       - name: BitBucket to GitHub
         uses: ./
@@ -77,4 +94,63 @@ jobs:
               -d '{"scm":"git"}' \
               "https://api.bitbucket.org/2.0/repositories/${INPUT_DEST_USERNAME}/${REPO_NAME}" > /dev/null 2>&1
           notify_prefix: "GitHub to BitBucket"
+          ignore_error: "true"
+
+      - name: GitHub to GitLab
+        uses: ./
+        with:
+          source_protocol: https
+          source_host: github.com
+          source_username: ${{ secrets.USER_GITHUB }}
+          source_token: ${{ secrets.TOKEN_GITHUB }}
+          dest_protocol: https
+          dest_host: gitlab.com
+          dest_username: ${{ secrets.USER_GITLAB }}
+          dest_token: ${{ secrets.TOKEN_GITLAB }}
+          mirror_repos: ${{ steps.gh_list_repos.outputs.gh_repo_list }}
+          lark_webhook: ${{ secrets.LARK_WEBHOOK }}
+          notify_prefix: "GitHub to GitLab"
+          ignore_error: "true"
+          dest_create_repo_script: |
+            # load functions: gitlab_update_project, gitlab_create_project, urlencode
+            source /mirror-git/functions/url.sh
+            source /mirror-git/functions/gitlab.sh
+
+            result=$(gitlab_update_project ${INPUT_DEST_TOKEN} $(urlencode ${INPUT_DEST_USERNAME}/${REPO_NAME}) "{\"lfs_enabled\":false}")
+            if [[ "${result}" = "404" ]]; then
+              result=$(gitlab_create_project ${INPUT_DEST_TOKEN} "{\"name\":\"${REPO_NAME}\",\"lfs_enabled\":false}")
+              if [[ "${result}" != "201" ]]; then
+                #notify "Failed to create gitlab project ${REPO_NAME}"
+                notify "Failed to create gitlab project"
+                exit 1
+              fi
+            fi
+
+      - name: Gitlab to GitHub
+        uses: ./
+        with:
+          source_protocol: https
+          source_host: gitlab.com
+          source_username: ${{ secrets.USER_GITLAB }}
+          source_token: ${{ secrets.TOKEN_GITLAB }}
+          dest_protocol: https
+          dest_host: github.com
+          dest_username: ${{ secrets.USER_GITHUB }}
+          dest_token: ${{ secrets.TOKEN_GITHUB }}
+          dest_token_username: ${{ secrets.USER_GITHUB }}
+          mirror_repos: ${{ steps.gl_list_repos.outputs.gl_repo_list }}
+          dest_create_repo_script: |
+            if ! gh auth status > /dev/null 2>&1; then
+              echo "${INPUT_DEST_TOKEN}" | gh auth login --with-token > /dev/null 2>&1
+              gh auth status > /dev/null 2>&1
+            fi
+
+            found=$(gh repo list ${INPUT_DEST_USERNAME} -L 1000 --json name -t "{{range .}}{{if (eq .name \"${REPO_NAME}\")}}{{.name}}{{end}}{{end}}")
+            if [[ -n "${found}" ]]; then
+              #echo "Repo already exists: ${REPO_NAME}"
+              #echo "Repo already exists"
+              exit 0
+            fi
+            gh repo create "${INPUT_DEST_USERNAME}/${REPO_NAME}" --private > /dev/null 2>&1
+          notify_prefix: "Gitlab to GitHub"
           ignore_error: "true"

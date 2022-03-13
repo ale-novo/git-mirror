@@ -15,11 +15,13 @@ def unprotect_branches(user, token):
         project_name = project['name']
         protected_branches = g.list_protected_branches(project_id)
         if len(protected_branches) == 0:
-            print(f'{project_name} has no protected branches')
+            #print(f'{project_name} has no protected branches')
+            print('This project has no protected branches')
             continue
         for branch in protected_branches:
             branch_name = branch['name']
-            print(f'unprotect branch: {project_name}/{branch_name}')
+            #print(f'unprotect branch: {project_name}/{branch_name}')
+            print(f'Found unprotect branch: {branch_name}')
             g.unprotect_repository_branch(project_id, branch_name)
 
 
