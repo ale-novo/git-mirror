@@ -90,7 +90,7 @@ jobs:
             curl -s \
               -u "${INPUT_DEST_USERNAME}:${INPUT_DEST_TOKEN}" \
               -H 'Content-Type: application/json' \
-              -d '{"scm":"git"}' \
+              -d '{"scm":"git", "is_private": true}' \
               "https://api.bitbucket.org/2.0/repositories/${INPUT_DEST_USERNAME}/${REPO_NAME}" > /dev/null 2>&1
           notify_prefix: "GitHub to BitBucket"
           ignore_error: "true"
@@ -170,7 +170,7 @@ jobs:
             curl -s \
               -u "${INPUT_DEST_USERNAME}:${INPUT_DEST_TOKEN}" \
               -H 'Content-Type: application/json' \
-              -d '{"scm":"git"}' \
+              -d '{"scm":"git", "is_private": true}' \
               "https://api.bitbucket.org/2.0/repositories/${INPUT_DEST_USERNAME}/${REPO_NAME}" > /dev/null 2>&1
           notify_prefix: "Gitlab to BitBucket"
           ignore_error: "true"
