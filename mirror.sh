@@ -215,9 +215,12 @@ function mirror() {
     #echo "dest_addr: ${dest_addr}"
 
     repo_dir="${WORKDIR}/${REPO_NAME}"
+    #########
     cd "${repo_dir}" || exit 1
-    if ! git push --all "${dest_addr}"; then
-      #notify "Failed to push branches: ${dest_addr}"
+
+    push_output=$(git push --all "${dest_addr}" 2>&1)
+    if [[ $? -ne 0 ]]; then
+      echo "${push_output}" | grep -v "Everything up-to-date"
       notify "Failed to push branches"
       if [[ "${INPUT_IGNORE_ERROR}" = "true" ]]; then
         continue
@@ -225,10 +228,10 @@ function mirror() {
       return 1
     fi
 
-    # shellcheck disable=SC2076
     if [[ "${INPUT_PUSH_TAGS}" = "true" && ! "${INPUT_SKIP_TAGS_REPOS}" =~ ",${REPO_NAME}," ]]; then
-      if ! git push --tags "${dest_addr}"; then
-        #notify "Failed to push tags: ${dest_addr}"
+      push_tags_output=$(git push --tags "${dest_addr}" 2>&1)
+      if [[ $? -ne 0 ]]; then
+        echo "${push_tags_output}" | grep -v "Everything up-to-date"
         notify "Failed to push tags"
         if [[ "${INPUT_IGNORE_ERROR}" = "true" ]]; then
           continue
@@ -236,6 +239,28 @@ function mirror() {
         return 1
       fi
     fi
+    #########
+    #cd "${repo_dir}" || exit 1
+    #if ! git push --all "${dest_addr}"; then
+    #  #notify "Failed to push branches: ${dest_addr}"
+    #  notify "Failed to push branches"
+    #  if [[ "${INPUT_IGNORE_ERROR}" = "true" ]]; then
+    #    continue
+    #  fi
+    #  return 1
+    #fi
+
+    # shellcheck disable=SC2076
+    #if [[ "${INPUT_PUSH_TAGS}" = "true" && ! "${INPUT_SKIP_TAGS_REPOS}" =~ ",${REPO_NAME}," ]]; then
+    #  if ! git push --tags "${dest_addr}"; then
+    #    #notify "Failed to push tags: ${dest_addr}"
+    #    notify "Failed to push tags"
+    #    if [[ "${INPUT_IGNORE_ERROR}" = "true" ]]; then
+    #      continue
+    #    fi
+    #    return 1
+    #  fi
+    #fi
   done
 }
 
