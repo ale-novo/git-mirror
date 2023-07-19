@@ -31,7 +31,7 @@ jobs:
       - name: List GitHub repos
         id: gh_list_repos
         run: |
-          gh_repo_list=$(gh repo list -L 1000 --json name -t '{{range $i, $n := .}}{{if (gt $i 0)}},{{end}}{{$n.name}}{{end}}' | jq -r 'split(",") | sort | join(",")')
+          gh_repo_list=$(gh repo list -L 1000 --json name -t '{{range $i, $n := .}}{{if (gt $i 0)}},{{end}}{{$n.name}}{{end}}' | tr ',' '\n' | sort | tr '\n' ',')
           echo "gh_repo_list=${gh_repo_list}" >> $GITHUB_OUTPUT
           echo "GitHub repos: ${gh_repo_list}"
 
