@@ -1,4 +1,4 @@
-name: Mirror
+name: Git Mirror
 
 on:
   workflow_dispatch:
@@ -70,7 +70,6 @@ jobs:
 
             found=$(gh repo list ${INPUT_DEST_USERNAME} -L 1000 --json name -t "{{range .}}{{if (eq .name \"${REPO_NAME}\")}}{{.name}}{{end}}{{end}}")
             if [[ -n "${found}" ]]; then
-              #echo "Repo already exists"
               exit 0
             fi
             gh repo create "${INPUT_DEST_USERNAME}/${REPO_NAME}" --private > /dev/null 2>&1
@@ -121,8 +120,7 @@ jobs:
             if [[ "${result}" = "404" ]]; then
               result=$(gitlab_create_project ${INPUT_DEST_TOKEN} "{\"name\":\"${REPO_NAME}\",\"lfs_enabled\":false, \"visibility\":\"private\"}")
               if [[ "${result}" != "201" ]]; then
-                #notify "Failed to create gitlab project ${REPO_NAME}"
-                notify "Failed to create gitlab project"
+                echo "Failed to create gitlab project ${REPO_NAME}"
                 exit 1
               fi
             fi
@@ -148,7 +146,6 @@ jobs:
 
             found=$(gh repo list ${INPUT_DEST_USERNAME} -L 1000 --json name -t "{{range .}}{{if (eq .name \"${REPO_NAME}\")}}{{.name}}{{end}}{{end}}")
             if [[ -n "${found}" ]]; then
-              #echo "Repo already exists"
               exit 0
             fi
             gh repo create "${INPUT_DEST_USERNAME}/${REPO_NAME}" --private > /dev/null 2>&1
@@ -200,8 +197,7 @@ jobs:
             if [[ "${result}" = "404" ]]; then            
               result=$(gitlab_create_project ${INPUT_DEST_TOKEN} "{\"name\":\"${REPO_NAME}\",\"lfs_enabled\":false, \"visibility\":\"private\"}")
               if [[ "${result}" != "201" ]]; then
-                #notify "Failed to create gitlab project ${REPO_NAME}"
-                notify "Failed to create gitlab project"
+                echo "Failed to create gitlab project ${REPO_NAME}"
                 exit 1
               fi
             fi
