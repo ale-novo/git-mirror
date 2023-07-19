@@ -7,7 +7,7 @@ def unprotect_branches(user, token):
     projects = g.list_all_user_projects(user)
     if projects is None:
         return
-    print(f'Found len(projects)} projects.')
+    print(f'Found {len(projects)} projects.')
 
     for project in projects:
         project_id = project['id']

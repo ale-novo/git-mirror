@@ -73,6 +73,10 @@ jobs:
               exit 0
             fi
             gh repo create "${INPUT_DEST_USERNAME}/${REPO_NAME}" --private > /dev/null 2>&1
+            if [ $? -ne 0 ]; then
+              echo "Failed to create GitHub repo ${REPO_NAME}"
+            fi
+
           notify_prefix: "BitBucket to GitHub"
           ignore_error: "true"
 
@@ -149,9 +153,12 @@ jobs:
               exit 0
             fi
             gh repo create "${INPUT_DEST_USERNAME}/${REPO_NAME}" --private > /dev/null 2>&1
+            if [ $? -ne 0 ]; then
+              echo "Failed to create GitHub repo ${REPO_NAME}"
+            fi
+
           notify_prefix: "Gitlab to GitHub"
           ignore_error: "true"
-
 
       - name: Gitlab to BitBucket
         uses: ./
