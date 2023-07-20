@@ -42,7 +42,7 @@ jobs:
           gl_repo_list=$(curl -s "https://gitlab.com/api/v4/users/${{ secrets.USER_GITLAB }}/projects?private_token=${{ secrets.TOKEN_GITLAB }}&per_page=100" |  jq -r '. | map (.name) | sort | join(",")')
           echo "gl_repo_list=${gl_repo_list}" >> $GITHUB_OUTPUT
           echo "GitLab repos: ${gl_repo_list}"
-          echo "Number of repos: $(echo $gh_repo_list | tr ',' '\n' | wc -l)"
+          echo "Number of repos: $(echo $gl_repo_list | tr ',' '\n' | wc -l)"
 
       - name: List BitBucket repos
         id: bb_list_repos
@@ -50,7 +50,7 @@ jobs:
           bb_repo_list=$(curl --request GET -s -u "${{ secrets.USER_BITBUCKET }}:${{ secrets.TOKEN_BITBUCKET }}" --url "https://api.bitbucket.org/2.0/repositories/${{ secrets.USER_BITBUCKET }}?pagelen=100&fields=values.name" --header 'Accept: application/json' | jq -r '.values | map(.name) | sort | join(",")')
           echo "bb_repo_list=${bb_repo_list}" >> $GITHUB_OUTPUT
           echo "BitBucket repos: ${bb_repo_list}"
-          echo "Number of repos: $(echo $gh_repo_list | tr ',' '\n' | wc -l)"
+          echo "Number of repos: $(echo $bb_repo_list | tr ',' '\n' | wc -l)"
        
       - name: BitBucket to GitHub
         uses: ./
