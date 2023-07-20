@@ -1,4 +1,4 @@
-from gitlab.gitlab import GitLab
+from gitlab import GitLab
 import sys
 
 def unprotect_branches(user, token):
@@ -14,7 +14,6 @@ def unprotect_branches(user, token):
         project_name = project['name']
         protected_branches = g.list_protected_branches(project_id)
         if len(protected_branches) == 0:
-            #print(f'{project_name} has no protected branches.')
             continue
         for branch in protected_branches:
             branch_name = branch['name']
