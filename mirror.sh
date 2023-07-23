@@ -274,9 +274,9 @@ function main() {
   init_message
   init_ssh
 
-  notify "Mirror Git starting"
+  notify "Mirror Git starting at `date`"
   if mirror; then
-    notify "Mirror Git finished"
+    notify "Mirror Git finished at `date`"
   else
     notify "Mirror Git failed"
     return 1
