@@ -9,12 +9,6 @@ jobs:
   mirror:
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false  # Do not cancel other attempts if one fails
-      matrix:
-        retry: [1, 2, 3]  # This creates 3 runs of the job in parallel, but you're using it for retries
-      max-tries: 3  # The job will retry up to 3 times if a step fails
-
     steps:
 
       - uses: actions/checkout@v2
